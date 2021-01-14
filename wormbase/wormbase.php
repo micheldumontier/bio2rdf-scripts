@@ -36,6 +36,7 @@ class WormbaseParser extends Bio2RDFizer {
 		parent::__construct($argv, "wormbase");
 		parent::addParameter('files', true, 'all|geneIDs|gene_associations|gene_interactions|phenotype_associations','all','files to process'); #functional_descriptions turned into flatfile, needs work
 		parent::addParameter('release', false, null, 'current', 'Release version of WormBase');
+		parent::addParameter('release_num', false, null, 'WS279', 'Release version number of WormBase');
 		parent::addParameter('download_url', false, null,'ftp://ftp.wormbase.org/pub/wormbase/');
 		parent::initialize();
 	}//constructor
@@ -49,13 +50,13 @@ class WormbaseParser extends Bio2RDFizer {
 			$files = explode(",",parent::getParameterValue('files'));
 		}
 		$release = parent::getParameterValue('release');
-		$releaseb = "WS276";
+		$release_num = parent::getParameterValue("release_num");
 		$remote_files = array(
 			"geneIDs" => "species/c_elegans/annotation/geneIDs/c_elegans.PRJNA13758.".$release.".geneIDs.txt.gz",
 			#"functional_descriptions" => "species/c_elegans/annotation/functional_descriptions/c_elegans.PRJNA13758.".$release.".functional_descriptions.txt.gz",
 			"gene_interactions" => "species/c_elegans/annotation/gene_interactions/c_elegans.PRJNA13758.".$release.".gene_interactions.txt.gz",
-			"gene_associations" => "releases/current-production-release/ONTOLOGY/gene_association.".$releaseb.".wb",
-			"phenotype_associations" => "releases/current-production-release/ONTOLOGY/phenotype_association.".$releaseb.".wb"
+			"gene_associations" => "releases/current-production-release/ONTOLOGY/gene_association.".$release_num.".wb",
+			"phenotype_associations" => "releases/current-production-release/ONTOLOGY/phenotype_association.".$release_num.".wb"
 		);
 
 		$local_files = array(
@@ -259,9 +260,15 @@ class WormbaseParser extends Bio2RDFizer {
 				parent::describeClass(parent::getVoc()."Gene-GO-Association","Gene GO Association").
 				parent::triplify($association_id, parent::getVoc()."gene", parent::getNamespace().$gene).
 				parent::triplify($association_id, parent::getVoc()."x-go", $go).
-				parent::triplify($association_id, parent::getVoc()."x-taxonomy", $taxon).
 				parent::triplify($association_id, parent::getVoc()."evidence_type", $go_evidence_type[$evidence_type])
 			);
+
+			$taxons = explode("|",$taxon);
+			foreach($taxons AS $taxon) {
+				parent::addRDF(
+					parent::triplify($association_id, parent::getVoc()."x-taxonomy", $taxon));
+			}
+			
 
 			$split_papers = explode("|", $papers);
 			foreach($split_papers as $paper){
