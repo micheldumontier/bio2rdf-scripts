@@ -16,7 +16,8 @@ jobs:
 
     strategy:
       matrix:
-        bio2rdf-dataset: ['bioportal']
+        parser: ['bioportal']
+        files: ['GO'] #,'ECO','CHEBI','MP','HP','DOID','PATO','CL','MI','UO']
 
     steps:
     - name: Setup PHP with PECL extension
@@ -24,7 +25,7 @@ jobs:
       with:
         php-version: '7.4'
         ini-values: memory_limit=6144M, max_execution_time=300
-        # Issue with default PHP 8.0 (4 error handling args instead of 5 expected)
+        extensions: mbstring,curl,openssl
 
     ## Setting up the environment
     # https://github.com/bio2rdf/bio2rdf-scripts/wiki/Setting-up-the-developer-environment
@@ -52,15 +53,15 @@ jobs:
     ## Run the Bio2RDF PHP parsers
     # https://github.com/bio2rdf/bio2rdf-scripts/wiki/Run-the-Bio2RDF-parsers
 
-    - name: Run ${{ matrix.bio2rdf-dataset }} parser
+    - name: Run ${{ matrix.parser }} parser
       working-directory: ./bio2rdf-scripts
       run: |
-        php runparser.php parser=${{ matrix.bio2rdf-dataset }} download=true files=GO,ECO,CHEBI,MP,HP,DOID,PATO,CL,MI,UO indir=data/download/${{ matrix.bio2rdf-dataset }}/ outdir=data/rdf/${{ matrix.bio2rdf-dataset }}/ registry_dir=registry ncbo_api_key=${{ secrets.NCBO_API_KEY }}
+        php runparser.php parser=${{ matrix.parser }} download=true files=${{ matrix.files }} indir=data/download/${{ matrix.parser }}/ outdir=data/rdf/${{ matrix.parser }}/ registry_dir=registry ncbo_api_key=${{ secrets.NCBO_API_KEY }}
 
     - name: Upload output RDF data
       uses: actions/upload-artifact@v1
       with:
-        name: ${{ matrix.bio2rdf-dataset }}-bio2rdf-output
+        name: ${{ matrix.parser }}-bio2rdf-output
         path: bio2rdf-scripts/data
 
 
