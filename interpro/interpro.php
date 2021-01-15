@@ -160,16 +160,19 @@ class InterproParser extends Bio2RDFizer
 			
 			// get the pubs
 			unset($pubs);
-			foreach($o->pub_list->publication AS $p) {
-				$pid = (string) $p->attributes()->id;
-				if(isset($p->db_xref)) {
-					if($p->db_xref->attributes()->db == "PUBMED") {
-						$pmid = (string) $p->db_xref->attributes()->dbkey;
-						$pubs['pid'][] = '<cite idref="'.$pid.'"/>';
-						$pubs['pmid'][] = '<a href="http://www.ncbi.nlm.nih.gov/pubmed/'.$pmid.'">pubmed:'.$pmid.'</a>';
-						parent::addRDF(
-							parent::triplify($s,parent::getVoc()."x-pubmed","pubmed:$pmid")
-						);
+			if(isset($o->pub_list) && count($o->pub_list)) {
+				
+				foreach($o->pub_list->publication AS $p) {
+					$pid = (string) $p->attributes()->id;
+					if(isset($p->db_xref)) {
+						if($p->db_xref->attributes()->db == "PUBMED") {
+							$pmid = (string) $p->db_xref->attributes()->dbkey;
+							$pubs['pid'][] = '<cite idref="'.$pid.'"/>';
+							$pubs['pmid'][] = '<a href="http://www.ncbi.nlm.nih.gov/pubmed/'.$pmid.'">pubmed:'.$pmid.'</a>';
+							parent::addRDF(
+								parent::triplify($s,parent::getVoc()."x-pubmed","pubmed:$pmid")
+							);
+						}
 					}
 				}
 			}
