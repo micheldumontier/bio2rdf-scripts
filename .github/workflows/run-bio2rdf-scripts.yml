@@ -1,10 +1,10 @@
 name: Run Bio2RDF PHP scripts
 on:
   workflow_dispatch:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  #push:
+  #  branches: [ master ]
+  #pull_request:
+  #  branches: [ master ]
 
 jobs:
   run-scripts:
@@ -17,7 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-       parser: ['ctd', 'dailymed', 'goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
+       parser: ['dailymed','orphanet'] 
+       # parser: ['ctd', 'dailymed', 'goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
 
     steps:
     - name: Setup PHP with PECL extension

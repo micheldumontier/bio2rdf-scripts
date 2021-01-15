@@ -1,10 +1,10 @@
 name: Run Bio2RDF BioPortal PHP scripts
 on:
   workflow_dispatch:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
+  #push:
+  #  branches: [ master ]
+  #pull_request:
+  #  branches: [ master ]
 
 jobs:
   run-scripts:
@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         parser: ['bioportal']
-        files: ['GO'] #,'ECO','CHEBI','MP','HP','DOID','PATO','CL','MI','UO']
+        files: ['GO','ECO','CHEBI','MP','HP','DOID','PATO','CL','MI','UO']
 
     steps:
     - name: Setup PHP with PECL extension
