@@ -72,8 +72,10 @@ class DailymedParser extends Bio2RDFizer
 			array_shift($files);
 		} else {
 			$files = explode(',', parent::getParameterValue('files'));
-		}
-        
+        }
+        if($id_list = parent::getParametervalue('id_list')) {
+            $ids = explode(",",$id_list);
+        }       
         
 		foreach($files AS $filetype) {
             echo "processing $filetype ...";
@@ -91,12 +93,7 @@ class DailymedParser extends Bio2RDFizer
 					}
 				}
             }
-/*
-            $xmlfile = "c:/data/download/dailymed/tmp/8ae4a0c1-1424-47a9-9a59-7fe38bedc0c7.xml";
-            $this->setReadFile($xmlfile);
-            $this->$filetype($xmlfile);
-            exit;
-*/
+
             // process files
             $z= 0;
             foreach($files_ AS $file) {	
@@ -115,10 +112,12 @@ class DailymedParser extends Bio2RDFizer
                 for($i = 0; $i < $zin1->count(); $i++) {
                     //if(++$z == 20) break;
                     $entry = $zin1->getNameIndex($i);
-                    echo "processing $entry".PHP_EOL;
-
+                    
                     // extract the dailymed entry (zip file) as a temporary file
                     $fileinfo = pathinfo($entry);
+                    if(isset($ids) and !in_array($fileinfo['basename'],$ids)) continue;
+                    echo "processing $entry".PHP_EOL;
+
                     $tfile = $tdir.$fileinfo['basename'];
                     if(!file_exists($tfile)) {
                         //break;
@@ -135,7 +134,7 @@ class DailymedParser extends Bio2RDFizer
                     // now find, extract, and process the xml file
                     for($j = 0; $j < $zin2->count(); $j++) {
                         $f = $zin2->getNameIndex($j);
-                        if(!strstr($f,".xml")) continue;                  
+                        if(!strstr($f,".xml")) continue;              
  
                         $fileinfo = pathinfo($f);
                         $xmlfile = $tdir.$fileinfo['basename'];
@@ -212,6 +211,10 @@ class DailymedParser extends Bio2RDFizer
 
 		while($xml->parse("document") == TRUE) {
             $x = $xml->getXMLRoot();
+            if($x === false) {
+                trigger_error("Error in parsing document",E_USER_ERROR);
+                break;
+            }
             $setid = $x->setId->attributes()->root;
             $id = parent::getNamespace().$setid;
             $title = addslashes(str_replace( array("\t", "\r","\n", '"'), array(" ","","",""), (string) $x->title));
