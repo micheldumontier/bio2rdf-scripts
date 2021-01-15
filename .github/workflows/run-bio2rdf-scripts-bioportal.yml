@@ -1,4 +1,4 @@
-name: Run Bio2RDF BioPortal PHP scripts
+name: Run BioPortal Script
 on:
   workflow_dispatch:
   #push:
@@ -24,7 +24,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: '7.4'
-        ini-values: memory_limit=6144M, max_execution_time=300
+        ini-values: memory_limit=6144M, max_execution_time=600
         extensions: mbstring,curl,openssl
 
     ## Setting up the environment
