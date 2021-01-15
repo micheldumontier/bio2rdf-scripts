@@ -15,8 +15,9 @@ jobs:
     # https://github.com/evryfs/github-actions-runner-operator/
 
     strategy:
+      fail-fast: false
       matrix:
-       parser: ['ctd', 'dailymed', 'goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase']
+       parser: ['ctd', 'dailymed', 'goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
 
     steps:
     - name: Setup PHP with PECL extension
