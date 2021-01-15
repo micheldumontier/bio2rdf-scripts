@@ -1,12 +1,12 @@
-name: Manual Build - {{ github.event.inputs.parser }}
+name: Manual Build
 on:
   workflow_dispatch:
     inputs:
       parser:
         required: true
-        description: "Specify the dataset to process"
+        description: "Specify the parser to run"
 jobs:
-  run-scripts:
+  run-script:
     runs-on: ubuntu-latest
     # runs-on: self-hosted 
     # https://sanderknape.com/2020/03/self-hosted-github-actions-runner-kubernetes/
