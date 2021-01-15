@@ -17,8 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-       parser: ['dailymed','orphanet'] 
-       # parser: ['ctd', 'dailymed', 'goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
+       parser: ['dailymed'] 
+       # parser: ['ctd','dailymed','goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
 
     steps:
     - name: Setup PHP with PECL extension
@@ -56,8 +56,6 @@ jobs:
 
     - name: Run ${{ matrix.parser }} parser
       working-directory: ./bio2rdf-scripts
-      # env:
-      #   NCBO_API_KEY: ${{ secrets.NCBO_API_KEY }}
       run: |
         php runparser.php parser=${{ matrix.parser }} download=true files=all indir=data/download/${{ matrix.parser }}/ outdir=data/rdf/${{ matrix.parser }}/ registry_dir=registry
 
