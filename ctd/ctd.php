@@ -672,7 +672,7 @@ function CTD_Pathways()
 function CTD_Genes()
 {
 	$first = true;
-	while($l = $this->GetReadFile()->Read()) {
+	while($l = $this->GetReadFile()->Read(500000)) {
 		if($l[0] == '#') continue;
 		$a = explode("\t",$l);
 
