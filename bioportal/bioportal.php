@@ -25,7 +25,6 @@ require_once(__DIR__.'/../../arc2/ARC2.php'); // available on git @ https://gith
 
 /**
  * A Bio2RDF converter for bioportal ontologies
- * documentation: 
  * @version 2.0
  * @author Michel Dumontier
 */
