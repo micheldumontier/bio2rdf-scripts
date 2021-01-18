@@ -1,0 +1,68 @@
+name: Dailymed
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'dailymed/**'
+
+jobs:
+  run-scripts:
+    runs-on: ubuntu-latest
+    # runs-on: self-hosted 
+    # https://sanderknape.com/2020/03/self-hosted-github-actions-runner-kubernetes/
+    # https://github.com/summerwind/actions-runner-controller
+    # https://github.com/evryfs/github-actions-runner-operator/
+
+    strategy:
+      fail-fast: false
+      matrix:
+       parser: ['dailymed'] 
+       # parser: ['ctd','dailymed','goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
+
+    steps:
+    - name: Setup PHP with PECL extension
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.4'
+        ini-values: memory_limit=6144M, max_execution_time=600
+        # Issue with default PHP 8.0 (4 error handling args instead of 5 expected)
+
+    ## Setting up the environment
+    # https://github.com/bio2rdf/bio2rdf-scripts/wiki/Setting-up-the-developer-environment
+
+    - uses: actions/checkout@v2
+      with:
+        repository: 'micheldumontier/php-lib'
+        path: 'php-lib'
+
+    - uses: actions/checkout@v2
+      with:
+        repository: 'semsol/arc2'
+        path: 'arc2'
+
+    - uses: actions/checkout@v2
+      with:
+        path: 'bio2rdf-scripts'
+
+    - name: Create data folders
+      working-directory: ./bio2rdf-scripts
+      run: |
+        mkdir -p data/download
+        mkdir -p data/rdf
+
+    ## Run the Bio2RDF PHP parsers
+    # https://github.com/bio2rdf/bio2rdf-scripts/wiki/Run-the-Bio2RDF-parsers
+
+    - name: Run ${{ matrix.parser }} parser
+      working-directory: ./bio2rdf-scripts
+      run: |
+        php runparser.php parser=${{ matrix.parser }} download=true files=all indir=data/download/${{ matrix.parser }}/ outdir=data/rdf/${{ matrix.parser }}/ registry_dir=registry
+
+    - name: Upload output RDF data
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ matrix.parser }}-bio2rdf-output
+        path: bio2rdf-scripts/data
+
+
+
