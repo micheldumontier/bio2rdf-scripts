@@ -1,7 +1,9 @@
-name: Run BioPortal Script
+name: BioPortal
 on:
   workflow_dispatch:
-  #push:
+  push:
+    paths:
+      - 'bioportal/**'
   #  branches: [ master ]
   #pull_request:
   #  branches: [ master ]
