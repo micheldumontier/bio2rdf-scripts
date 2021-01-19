@@ -33,10 +33,15 @@ require_once(__DIR__.'/../../php-lib/xmlapi.php');
 
 class DrugBankParser extends Bio2RDFizer 
 {    
+	var $go = null; # an index of the GO ids and labels
+
     function __construct($argv) {
 		parent::__construct($argv,"drugbank");
 		parent::addParameter('files', true, 'all|drugbank','all','Files to convert');
-		parent::addParameter('download_url',false,null,'https://www.drugbank.ca/releases/5-0-5/downloads/all-full-database');
+		# https://go.drugbank.com/releases/help
+		parent::addParameter('download_url',false,null,'https://USERPASS@go.drugbank.com/releases/latest/downloads/all-full-database'); 
+		parent::addParameter('version',false,null,'5-1-8','The drugbank version number');
+		
 		parent::initialize();
     }
     
@@ -57,16 +62,6 @@ class DrugBankParser extends Bio2RDFizer
 			$this->id_list = array_flip(explode(",",parent::getParameterValue('id_list')));
 		}
 		
-		$go_cache_file = parent::getParameterValue('indir')."go.cache.json";
-		#unlink($go_cache_file);
-		if(!file_exists($go_cache_file) or parent::getParameterValue('download') == true) {
-			$this->getGO();
-			file_put_contents($go_cache_file,json_encode($this->go));
-		} else {
-			// read the file
-			$this->go = json_decode( file_get_contents($go_cache_file), true);		
-		}
-
 		$dataset_description = '';
 		foreach($files AS $f) {
 			if($f == 'drugbank') {
@@ -76,19 +71,41 @@ class DrugBankParser extends Bio2RDFizer
 			}
 			$fnx = 'parse_'.$f;
 
-			$rfile = parent::getParameterValue('download_url').$file;
 			$lfile = parent::getParameterValue('indir').$file;
 			$cfile = $lname.".".parent::getParameterValue('output_format');
 
 			// download
 			if(!file_exists($lfile) || parent::getParameterValue('download') == true) {
+				$userpass = parent::getParameterValue('drugbank_login');
+				if($userpass == "username:password") {
+					trigger_error("You must specify your Drugbank login credentials to remotely download the datafile",E_USER_ERROR);
+					exit(-1);
+				}
+				$url = parent::getParameterValue('download_url');
+				$url = str_replace("USERPASS",$userpass,$url);
+				$version = parent::getParameterValue('version');
+				$rfile = str_replace("VERSION",$version,$url);
+
+				echo "downloading $file ... ";
 				utils::downloadSingle($rfile,$lfile);
+				echo "done".PHP_EOL;
+			}
+
+			# sketchy getting labels for GO ids
+			$go_cache_file = parent::getParameterValue('indir')."go.cache.json";
+			if(!file_exists($go_cache_file) or parent::getParameterValue('download') == true) {
+				echo "getting GO cache file ... ";
+				 $this->getGO();
+				echo "done".PHP_EOL;
+				if($this->go != null) file_put_contents($go_cache_file,json_encode($this->go));
+			} else {
+				// read the file
+				$this->go = json_decode( file_get_contents($go_cache_file), true);		
 			}
 
 			// setup the write
 			$gz = (strstr(parent::getParameterValue('output_format'),".gz") === FALSE)?false:true;
 			parent::setWriteFile($outdir.$cfile, $gz);
-			echo $outdir.$cfile;
 			if(file_exists($indir.$file)) {
 				// call the parser
 				echo "processing $file ...".PHP_EOL;
@@ -358,7 +375,7 @@ class DrugBankParser extends Bio2RDFizer
 			unset($this->id_list[$dbid]);
 		}
 
-		echo "Processing $dbid".PHP_EOL;
+		#echo "Processing $dbid".PHP_EOL;
 		if(isset($x->description) && $x->description != '') {
 			$description = trim((string)$x->description);
 		}
@@ -803,8 +820,7 @@ class DrugBankParser extends Bio2RDFizer
 
 	function getGO() 
 	{
-		$this->go = null;
-		
+	
 		$server = "http://bio2rdf.org/sparql";
 		$sparql = "PREFIX dct: <http://purl.org/dc/terms/>
 SELECT distinct ?id ?title
@@ -817,7 +833,7 @@ SELECT distinct ?id ?title
 
 		$results = file_get_contents($url);
 		if($results === FALSE) {
-			trigger_error("Unable to get Gene Ontology labels",E_USER_WARNING);
+			trigger_error("Unable to get Gene Ontology labels from Bio2RDF SPARQL endpoint.",E_USER_WARNING);
 			return false;
 		}
 		$list = explode("\n",$results);
