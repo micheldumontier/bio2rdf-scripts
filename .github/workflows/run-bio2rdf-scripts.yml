@@ -17,8 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-       parser: ['ctd','goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','sgd','taxonomy','wormbase'] 
-       # parser: ['ctd','dailymed','goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
+       parser: ['drugbank','ctd','goa','hgnc','interpro','lsr','mesh','mgi','orphanet','pharmgkb','sgd','sider','taxonomy','wormbase'] 
 
     steps:
     - name: Setup PHP with PECL extension
