@@ -49,7 +49,7 @@ jobs:
     - name: Run ${{ github.event.inputs.parser }} parser
       working-directory: ./bio2rdf-scripts
       run: |
-        php runparser.php parser=${{ github.event.inputs.parser }} download=true files=all indir=data/download/${{ github.event.inputs.parser }}/ outdir=data/rdf/${{ github.event.inputs.parser }}/ registry_dir=registry
+        php runparser.php parser=${{ github.event.inputs.parser }} download=true files=all indir=data/download/${{ github.event.inputs.parser }}/ outdir=data/rdf/${{ github.event.inputs.parser }}/ registry_dir=registry ncbo_api_key=${{ secrets.NCBO_API_KEY }} drugbank_login=${{ secrets.DRUGBANK_LOGIN }}
 
     - name: Upload output RDF data
       uses: actions/upload-artifact@v1
