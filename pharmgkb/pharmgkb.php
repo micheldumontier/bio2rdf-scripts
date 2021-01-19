@@ -38,44 +38,53 @@ class PharmGKBParser extends Bio2RDFizer
 	function __construct($argv) {
 		parent::__construct($argv, "pharmgkb");
 		$this->AddParameter('files',true,'all|drugs|genes|phenotypes|pathways|relationships|annotations|variants','all','all or comma-separated list of files to process'); /** pathways **/
-		$this->addParameter('additional',false,'none|offsides|twosides','none','process offsides and/or twosides');
-		$this->AddParameter('download_url',false,null,'https://www.pharmgkb.org/downloads');
+		# $this->addParameter('additional',false,'none|offsides|twosides','none','process offsides and/or twosides');
+		$this->AddParameter('download_url',false,null,'https://api.pharmgkb.org/v1/download/file/data/');
 		parent::initialize();
 	}
 	
 	function download()
 	{
 		// get the file list
-		if($this->GetParameterValue('files') == 'all') {
+		if($this->getParameterValue('files') == 'all') {
 			$files = explode("|",$this->GetParameterList('files'));
 			array_shift($files);
 		} else {
 			$files = explode(",",$this->GetParameterValue('files'));
 		}
+		/*
+		# echo "Download the data from https://www.pharmgkb.org/downloads.".PHP_EOL;
 		if($this->getParameterValue('additional') != 'none') {
 			$f = explode(",",$this->getParameterValue('additional'));
 			$files = array_merge($files,$f);
 		}
+		*/
 
-		$ldir = $this->GetParameterValue('indir');
-		$rdir = $this->GetParameterValue('download_url');
-		
-		echo "Download the data from https://www.pharmgkb.org/downloads.".PHP_EOL;
+		$ldir = $this->getParameterValue('indir');
+		$rdir = $this->getParameterValue('download_url');
+		foreach($files as $file) {
+			$lfile = $ldir.$file.".zip";
+			$rfile = $rdir.$file.".zip";
+			parent::DownloadSingle($rfile,$lfile);
+		}
+		exit;
 	}
 
 	function run()
 	{
 		// get the file list
-		if($this->GetParameterValue('files') == 'all') {
+		if($this->getParameterValue('files') == 'all') {
 			$files = explode("|",$this->GetParameterList('files'));
 			array_shift($files);
 		} else {
 			$files = explode(",",$this->GetParameterValue('files'));
 		}
+		/*
 		if($this->getParameterValue('additional') != 'none') {
 			$f = explode(",",$this->getParameterValue('additional'));
 			$files = array_merge($files,$f);
 		}
+		*/
 
 		$ldir = $this->GetParameterValue('indir');
 		$odir = $this->GetParameterValue('outdir');
@@ -88,9 +97,13 @@ class PharmGKBParser extends Bio2RDFizer
 
 			$lfile = $ldir.$file.$suffix;
 			$rfile = $rdir.$file.$suffix;
+			
 			// get a pointer to the file in the zip archive
-			if(!file_exists($lfile)) {echo "no local copy of $lfile . skipping".PHP_EOL;continue;}
-
+			if(!file_exists($lfile) or parent::getParameterValue('download') == true) {
+				echo "Downloading $file ";
+				utils::downloadSingle($rfile,$lfile);
+			}
+			
 			$zin = new ZipArchive();
 			if ($zin->open($lfile) === FALSE) {
 				trigger_error("Unable to open $lfile");
@@ -101,9 +114,12 @@ class PharmGKBParser extends Bio2RDFizer
 				// exclude: 'clinical_ann.tsv','study_parameters.tsv'
 				$zipentries = array(
 					'clinical_ann_metadata.tsv',
-					'var_drug_ann.tsv','var_pheno_ann.tsv','var_fa_ann.tsv'
-				); 
+					'var_drug_ann.tsv',
+					'var_pheno_ann.tsv',
+					'var_fa_ann.tsv'
+				);
 			} else if($file == "pathways-tsv") {
+				# get the list of pathways in the zip file
 				for( $i = 0; $i < $zin->numFiles; $i++ ){ 
 					$stat = $zin->statIndex( $i ); 
 					$entry = $stat['name'];
@@ -129,6 +145,7 @@ class PharmGKBParser extends Bio2RDFizer
 
 			$this->SetWriteFile($odir.$outfile, $gz);
 
+			echo "processing $file ";
 			foreach($zipentries AS $zipentry) {
 				if(($fp = $zin->getStream($zipentry)) === FALSE) {
 					trigger_error("Unable to get $file.tsv in ziparchive $lfile");
@@ -138,59 +155,58 @@ class PharmGKBParser extends Bio2RDFizer
 				$this->GetReadFile()->SetFilePointer($fp);
 
 				if($file == "annotations") {
-					$fnx = substr($zipentry,0,strpos($zipentry,".tsv"));				
-					echo "processing $zipentry..";
+					$fnx = substr($zipentry,0,strpos($zipentry,".tsv"));
 				} else if($file == 'pathways-tsv') {
 					$fnx = 'pathways';
 					$this->pathway_name = $zipentry;
-					echo "processing $fnx ($zipentry)... ";
 				} else {
 					$fnx = $file;	
-					echo "processing $fnx ... ";
 				}
 	
 				$this->$fnx();
 				parent::writeRDFBufferToWriteFile();
 				parent::clear();
-				echo "done!".PHP_EOL;
-
-				// generate the dataset release file
-				$source_file = (new DataResource($this))
-					->setURI($rfile)
-					->setTitle("Pharmacogenomics Knowledge Base ($zipentry)")
-					->setRetrievedDate( date ("Y-m-d\TG:i:s\Z", filemtime($lfile)))
-					->setFormat("text/tab-separated-value")
-					->setFormat("application/zip")	
-					->setPublisher("http://www.pharmgkb.org/")
-					->setHomepage("http://www.pharmgkb.org/")
-					->setRights("use")
-					->setRights("no-commercial")
-					->setLicense("http://www.pharmgkb.org/page/policies")
-					->setDataset("http://identifiers.org/pharmgkb/");
-
-				$prefix = parent::getPrefix();
-				$bVersion = parent::getParameterValue('bio2rdf_release');
-				$date = date ("Y-m-d\TG:i:s\Z");
-				$output_file = (new DataResource($this))
-					->setURI("http://download.bio2rdf.org/release/$bVersion/$prefix/$outfile")
-					->setTitle("Bio2RDF v$bVersion RDF version of $prefix $file (generated at $date)")
-					->setSource($source_file->getURI())
-					->setCreator("https://github.com/bio2rdf/bio2rdf-scripts/blob/master/pharmgkb/pharmgkb.php")
-					->setCreateDate($date)
-					->setHomepage("http://download.bio2rdf.org/release/$bVersion/$prefix/$prefix.html")
-					->setPublisher("http://bio2rdf.org")			
-					->setRights("use-share-modify")
-					->setRights("by-attribution")
-					->setRights("restricted-by-source-license")
-					->setLicense("http://creativecommons.org/licenses/by/3.0/")
-					->setDataset(parent::getDatasetURI());
-
-				if($gz) $output_file->setFormat("application/gzip");
-				if(strstr(parent::getParameterValue('output_format'),"nt")) $output_file->setFormat("application/n-triples");
-				else $output_file->setFormat("application/n-quads");
-
-				$dataset_description .= $source_file->toRDF().$output_file->toRDF();
 			}
+			echo "done!".PHP_EOL;
+
+			// generate the dataset release file
+			$source_file = (new DataResource($this))
+				->setURI($rfile)
+				->setTitle("Pharmacogenomics Knowledge Base ($zipentry)")
+				->setRetrievedDate( date ("Y-m-d\TG:i:s\Z", filemtime($lfile)))
+				->setFormat("text/tab-separated-value")
+				->setFormat("application/zip")	
+				->setPublisher("http://www.pharmgkb.org/")
+				->setHomepage("http://www.pharmgkb.org/")
+				->setRights("use")
+				->setRights("attribution")
+				->setRights("share-alike")
+				->setRights("no-commercial")
+				->setLicense("https://www.pharmgkb.org/page/dataUsagePolicy")
+				->setDataset("http://identifiers.org/pharmgkb/");
+
+			$prefix = parent::getPrefix();
+			$bVersion = parent::getParameterValue('bio2rdf_release');
+			$date = date ("Y-m-d\TG:i:s\Z");
+			$output_file = (new DataResource($this))
+				->setURI("http://download.bio2rdf.org/release/$bVersion/$prefix/$outfile")
+				->setTitle("Bio2RDF v$bVersion RDF version of $prefix $file (generated at $date)")
+				->setSource($source_file->getURI())
+				->setCreator("https://github.com/bio2rdf/bio2rdf-scripts/blob/master/pharmgkb/pharmgkb.php")
+				->setCreateDate($date)
+				->setHomepage("http://download.bio2rdf.org/release/$bVersion/$prefix/$prefix.html")
+				->setPublisher("http://bio2rdf.org")			
+				->setRights("use-share-modify")
+				->setRights("by-attribution")
+				->setRights("restricted-by-source-license")
+				->setLicense("http://creativecommons.org/licenses/by/3.0/")
+				->setDataset(parent::getDatasetURI());
+
+			if($gz) $output_file->setFormat("application/gzip");
+			if(strstr(parent::getParameterValue('output_format'),"nt")) $output_file->setFormat("application/n-triples");
+			else $output_file->setFormat("application/n-quads");
+
+			$dataset_description .= $source_file->toRDF().$output_file->toRDF();
 			$this->GetWriteFile()->Close();
 		} // foreach
 
