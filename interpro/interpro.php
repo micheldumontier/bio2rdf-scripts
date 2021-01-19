@@ -146,7 +146,7 @@ class InterproParser extends Bio2RDFizer
 			if(isset($id_list) && !in_array($interpro_id,$id_list)) {
 				continue;
 			}
-			echo "Processing $interpro_id".PHP_EOL;
+			# echo "Processing $interpro_id".PHP_EOL;
 			
 			$name = $o->name;
 			$short_name = $o->attributes()->short_name;
