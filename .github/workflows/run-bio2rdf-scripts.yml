@@ -56,7 +56,7 @@ jobs:
     - name: Run ${{ matrix.parser }} parser
       working-directory: ./bio2rdf-scripts
       run: |
-        php runparser.php parser=${{ matrix.parser }} download=true files=all indir=data/download/${{ matrix.parser }}/ outdir=data/rdf/${{ matrix.parser }}/ registry_dir=registry
+        php runparser.php parser=${{ matrix.parser }} download=true files=all indir=data/download/${{ matrix.parser }}/ outdir=data/rdf/${{ matrix.parser }}/ registry_dir=registry ncbo_api_key=${{ secrets.NCBO_API_KEY }} drugbank_login=${{ secrets.DRUGBANK_LOGIN }}
 
     - name: Upload output RDF data
       uses: actions/upload-artifact@v1
