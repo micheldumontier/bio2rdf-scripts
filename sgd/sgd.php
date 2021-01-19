@@ -38,8 +38,6 @@ class SGDParser extends Bio2RDFizer {
 		parent::__construct($argv,"sgd");
 		parent::addParameter('files',true,'all|dbxref|features|domains|protein|goa|goslim|complex|interaction|phenotype|pathways|mapping','all','all or comma-separated list of files to process');
 		parent::addParameter('download_url',false,null,'http://downloads.yeastgenome.org/');
-		parent::addParameter('ncbo_download_dir', false, null, '/data/download/bioportal/', 'directory of bioportal ontologies');
-		parent::addParameter('ncbo_api_key',true,null,null,'your NCBO API key');
 		parent::addParameter('one_file',false,'true|false','false',"whether to produce a single file output");
 		parent::initialize();
 	}
@@ -867,14 +865,15 @@ class SGDParser extends Bio2RDFizer {
 
 	function interaction(){
 
-		$apofile = $this->GetParameterValue('ncbo_download_dir')."apo.obo";
-		if(!file_exists($apofile)) {
-			$this->GetLatestNCBOOntology('APO',$this->GetParameterValue('ncbo_api_key'),$apofile);
+		$ldir = parent::getParameterValue('indir');
+		$lfile = $ldir."apo.obo";
+		if(!file_exists($lfile)) {
+			$this->GetLatestNCBOOntology('APO',$this->getParameterValue('ncbo_api_key'),$lfile);
 		}
 		
-		$apoin = fopen($apofile, "r");
+		$apoin = fopen($lfile, "r");
 		if($apoin === FALSE) {
-			trigger_error("Unable to open $apofile", E_USER_ERROR);
+			trigger_error("Unable to open $lfile", E_USER_ERROR);
 			exit;
 		}
 		$terms = OBOParser($apoin);
