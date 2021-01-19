@@ -37,8 +37,6 @@ class BioportalParser extends Bio2RDFizer
 		parent::addParameter('download_url',false,null,'http://data.bioontology.org/');
 		parent::addParameter('exclude',false,null,"AURA,HOOM",'ontologies to exclude - use acronyms');
 		parent::addParameter('continue_from',false,null,"",'the ontology abbreviation to restart from');
-		parent::addParameter('ncbo_api_key',false,null,null,'BioPortal API key (please use your own)');
-		parent::addParameter('ncbo_api_key_file',false,null,'ncbo.api.key','BioPortal API key file');
 		parent::addParameter('detail',false,'min|min+|max','max','min:generate rdfs:label and rdfs:subClassOf axioms; min+: min + owl axioms');
 
 		parent::initialize();
