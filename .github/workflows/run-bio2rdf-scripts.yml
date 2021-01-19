@@ -1,8 +1,8 @@
 name: Run Bio2RDF PHP scripts
 on:
   workflow_dispatch:
-  #push:
-  #  branches: [ master ]
+    branches:
+      - 'release/**'
   #pull_request:
   #  branches: [ master ]
 
@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-       parser: ['dailymed'] 
+       parser: ['ctd','goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','sgd','taxonomy','wormbase'] 
        # parser: ['ctd','dailymed','goa','hgnc','interpro','lsr','orphanet','pharmgkb','sider','taxonomy','wormbase'] 
 
     steps:
@@ -64,6 +64,3 @@ jobs:
       with:
         name: ${{ matrix.parser }}-bio2rdf-output
         path: bio2rdf-scripts/data
-
-
-
