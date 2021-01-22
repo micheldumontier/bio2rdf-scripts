@@ -286,7 +286,7 @@ class KEGGParser extends Bio2RDFizer
 			if($k == "///" or $k == "ENTRY1") break;
 			
 			if($k == "ENTRY") {
-				$a = explode("  ",$v,2);
+				$a = preg_split("/[\s,]+/", $v);
 				$e['id'] = str_replace(array("EC "," "),"",$a[0]);
 				if(isset($this->org)) $e['id'] = ($this->org)."_".$e['id'];
 				
