@@ -951,9 +951,9 @@ class SGDParser extends Bio2RDFizer {
 	function phenotype(){
 
 		/** get the ontology terms **/
-		$apofile = $this->GetParameterValue('ncbo_download_dir')."apo.obo";
+		$apofile = $this->getParameterValue('indir')."apo.obo";
 		if(!file_exists($apofile)) {
-			GetLatestNCBOOntology('APO',$this->GetParameterValue('ncbo_api_key'),$apofile);
+			$this->GetLatestNCBOOntology('APO',$this->getParameterValue('ncbo_api_key'),$apofile);
 		}
 		
 		$apoin = fopen($apofile, "r");
