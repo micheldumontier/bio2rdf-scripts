@@ -543,6 +543,8 @@ class BioportalParser extends Bio2RDFizer
 									$id = $y[0];
 								}
 								if($ns == "xref; umls_cui") continue; 
+								if($ns == "search-url") continue;
+								if($ns == "id-validation-regex") continue;
 								if($ns == "submitter") $ns = "chebi.submitter";
 								if($ns == "wikipedia" || $ns == "mesh") $id = str_replace(" ","+",$id);
 								if($ns == "id-validation-regexp") {
