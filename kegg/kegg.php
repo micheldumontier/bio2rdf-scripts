@@ -645,9 +645,12 @@ class KEGGParser extends Bio2RDFizer
 			}
 			if($k == "DRUG_TARGET") {
 				// Afatinib: D09724 D09733
+				// Adinazolam (DG00911): D02770 D02771
+				// Amobarbital (DG00916): D00555<JP> D02252
+				// Cenobamate: D11150<US>
 				$s = substr($v,strpos($v,":")+2);
-				$list = explode(" ",$s);
-				foreach($list AS $item) {
+				preg_match_all("/([D0-9]+)/",$s,$m);
+				foreach($m[1] AS $item) {
 					parent::addRDF(
 						parent::triplify($uri,parent::getVoc()."drug-target","kegg:$item")
 					);				
