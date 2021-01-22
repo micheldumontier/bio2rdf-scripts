@@ -335,7 +335,7 @@ class BioportalParser extends Bio2RDFizer
 				$a['o'] = 'http://bio2rdf.org/'.$prefix.'_resource:'.substr($a['o'],2);
 			}
 			$u = $this->parseURI($a['o']);
-			$o_uri = $u['uri'];
+			$o_uri = parent::makeSafeIRI($u['uri']);
 			if(isset($u['prefix'])) {
 				if(!in_array($u['prefix'],$defaults)) {
 					if($bio2rdf_priority) {
