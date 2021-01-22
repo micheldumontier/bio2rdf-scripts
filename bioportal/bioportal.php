@@ -519,7 +519,8 @@ class BioportalParser extends Bio2RDFizer
 							if(substr($b[1],0,4) == "http") {
 								// https://en.wikipedia.org/wiki/Prolamin {source="SUBMITTER"}
 								$url = preg_replace("/{.*\}/","",$b[1]);
-								$buf .= parent::triplify($tid,"rdfs:seeAlso", $url);
+								$url = str_replace("http\:","http:", $url);
+								$buf .= parent::triplify($tid,"rdfs:seeAlso", parent::makeSafeIRI($url));
 							} else {
 								$ns = str_replace(array(" ","\\",) ,"",strtolower($b[0]));
 								$id = trim($b[1]);
@@ -543,8 +544,9 @@ class BioportalParser extends Bio2RDFizer
 									$id = $y[0];
 								}
 								if($ns == "xref; umls_cui") continue; 
+								if($ns == "url") continue;
 								if($ns == "search-url") continue;
-								if($ns == "id-validation-regex") continue;
+								if($ns == "id-validation-regex" or $ns == "regexp") continue;
 								if($ns == "submitter") $ns = "chebi.submitter";
 								if($ns == "wikipedia" || $ns == "mesh") $id = str_replace(" ","+",$id);
 								if($ns == "id-validation-regexp") {
