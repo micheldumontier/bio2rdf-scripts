@@ -65,7 +65,7 @@ class PubmedParser extends Bio2RDFizer
 		foreach($contents as $aFile){
 			preg_match($pattern, $aFile, $matches);
 			if(count($matches)){
-				print_r($matches);
+				#print_r($matches);
 				$rm[] = $matches[1];
 			}
 		}
@@ -140,7 +140,7 @@ class PubmedParser extends Bio2RDFizer
 		if($this->getParameterValue('download') == true){
 			$this->downloadFiles($ldir, "/pubmed/baseline/");
 		}
-		if($this->getParameterValue("files") != '') {
+		if($this->getParameterValue("files") != 'all') {
 			$list = explode(",",$this->getParameterValue("files"));
 			$files = array();
 			foreach($list AS $item) {
@@ -632,9 +632,11 @@ class PubmedParser extends Bio2RDFizer
 		$year = $dateobj->Year;
 		$month = $dateobj->Month;
 		$day = $dateobj->Day;
-		parent::addRDF(
-			parent::triplifyString($id, parent::getVoc().$field, "$year-$month-$day", "xsd:date")
-		);
+		if($year and $month and $day) {
+			parent::addRDF(
+				parent::triplifyString($id, parent::getVoc().$field, "$year-$month-$day", "xsd:date")
+			);
+		}
 	}
 
 }
