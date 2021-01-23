@@ -342,11 +342,15 @@ class NCBIGeneParser extends Bio2RDFizer
 		);
 		//(tab is used as a separator, pound sign - start of a comment) */
 		$z = 1;
-		while($l = $this->getReadFile()->read(200000)){
+		while($l = $this->getReadFile()->read(2000000)){
 			if($l[0] == "#") continue;
-			if(($z++) % 100000 == 0) {echo $z.PHP_EOL;parent::clear();}
+			if(($z++) % 1000000 == 0) {echo ($z-1).PHP_EOL;parent::clear();}
 			$a = explode("\t",rtrim($l));
-			if(count($a) != 16) { trigger_error("gene2accession: expecting 16 columns, found ".count($a)." instead", E_USER_ERROR);}
+			if(count($a) != 16) { 
+				trigger_error("gene2accession: expecting 16 columns, found ".count($a)." instead", E_USER_ERROR);
+				#var_dump($a);
+				continue;
+			}
 			$taxid = $a[0];
 			if(isset($this->taxids) and !isset($this->taxids[$taxid])) {continue;}
 
