@@ -248,7 +248,7 @@ class KEGGParser extends Bio2RDFizer
 				echo "done. ";
 			}
 			
-			echo "parsing $nsid ... ";
+			#echo "parsing $nsid ... ";
 			$this->parseEntry($lfile);
 			parent::writeRDFBufferToWriteFile();
 			
@@ -268,7 +268,7 @@ class KEGGParser extends Bio2RDFizer
 					$this->parseKGML($lfile);
 					parent::writeRDFBufferToWriteFile();
 			}
-			echo "done!".PHP_EOL;
+			#echo "done!".PHP_EOL;
 		}
 	}
 		
@@ -569,10 +569,16 @@ class KEGGParser extends Bio2RDFizer
 				continue;
 			}
 			if($k == "ORGANISM") {
-				$a = explode(" ",$v);
-				parent::addRDF(
-					parent::triplify($uri,parent::getVoc()."organism","kegg:".$a[0])
-				);
+				/*  
+				    Homo sapiens [HSA:3827]
+					[1] Penicillium chrysogenum 
+				*/
+				preg_match("/([A-Z]+)\:[0-9]+/",$v,$m);
+				if(isset($m[1])) {
+					parent::addRDF(
+						parent::triplify($uri,parent::getVoc()."organism","kegg:".$m[1])
+					);
+				}
 				continue;
 			}
 			
