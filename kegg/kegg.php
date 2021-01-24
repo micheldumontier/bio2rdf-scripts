@@ -646,6 +646,10 @@ class KEGGParser extends Bio2RDFizer
 					foreach($m[1] AS $idlist) {
 						$a = explode(":",$idlist);
 						$ns = $a[0];
+						if(!isset($a[1])) {
+							# GENE (AAMR) GMPPA [HSA:29926] [KO:K00966] [K00966]
+							continue;
+						}
 						$b = explode(" ",$a[1]);
 						foreach($b AS $id) {
 							if($ns == "KO") {$rel = "ko-".strtolower($k);$gene = $id;}
