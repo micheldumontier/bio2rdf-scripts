@@ -771,7 +771,7 @@ class KEGGParser extends Bio2RDFizer
 				parent::addRDF(
 					parent::describeIndividual($ref, $r['title'], parent::getVoc()."Reference").
 					parent::describeClass(parent::getVoc()."Reference","Reference").
-					parent::triplifyString($ref,parent::getVoc()."authors",$r['authors']).
+					(isset($r['authors'])?parent::triplifyString($ref,parent::getVoc()."authors",$r['authors']):'').
 					parent::triplifyString($ref,parent::getVoc()."journal",$r['journal']).
 					parent::triplify($uri,parent::getVoc()."reference",$ref)
 				);
