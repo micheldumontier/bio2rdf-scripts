@@ -524,6 +524,9 @@ class KEGGParser extends Bio2RDFizer
 				$ids = explode(" ",$a[1]);
 				foreach($ids AS $id) {
 					if(!$id)continue;
+					if(strstr($id,",")) { # some weird ones e.g. 2,4,5-t
+						$id = urlencode($id);	
+					}
 					parent::addRDF(
 						parent::triplify($uri,parent::getVoc()."x-$ns","$ns:$id")
 					);
