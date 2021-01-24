@@ -394,9 +394,20 @@ class KEGGParser extends Bio2RDFizer
 				}
 				continue;
 			}
+
+			#echo $k.PHP_EOL;
+			if(in_array($k, array("DISEASE"))) {
+				preg_match("/([A-Z]+\:[A-Z0-9]+)/",$v,$m);
+				if(isset($m[1])) {
+					$mid = $m[1];
+					parent::addRDF(
+						parent::triplify($uri,parent::getVoc().strtolower($k),"kegg:".$mid)
+					);
+				}
+			}
 			
 			// multi-line header with key-value pair
-			if(in_array($k, array("PATHWAY_MAP","STR_MAP","MODULE","DISEASE","KO_PATHWAY","COMPOUND"))) {
+			if(in_array($k, array("PATHWAY_MAP","STR_MAP","MODULE","KO_PATHWAY","COMPOUND"))) {
 				// PATHWAY_MAP map00010  Glycolysis / Gluconeogenesis
 				$a = explode("  ",$v,2);
 				$mid = $a[0];
@@ -444,10 +455,22 @@ class KEGGParser extends Bio2RDFizer
 			
 			// a list of objects to parse out that are defined within square brackets
 			if(in_array($k, array("SOURCE","COMPONENT"))) {
+				/* 
+					COMPONENT   Invert sugar [CPD:C10906 C00031], Sucrose [CPD:C00089], H2O [CPD:C00001], 
+					Formate [CPD:C00058], Citrate [CPD:C00158], Malate [CPD:C00711], Lactate [CPD:C01432], 
+					Nitrogenous, Ash, Protein, Pigment, Essential oil, Pollen, Enzyme, Mineral, B-complex vitamins, 
+					Acetylcholine [CPD:C01996]
+				*/ 
 				preg_match_all("/\[([^\]]+)\]/",$v,$m);
-				if(isset($m[1])) {
-					foreach($m[1] AS $id) {
-						$myid = str_replace(array("TAX","CPD","DR"), array("taxonomy","kegg","kegg"),$id);
+				if(isset($m[1][0])) {
+					#print_r($m);exit;
+					$a = explode(":",$m[1][0],2);
+					#print_r($a);exit;
+					$ns1 = str_replace(array("TAX","CPD","DR"), array("taxonomy","kegg","kegg"),$a[0]);
+					$id1 = $a[1];
+					$ids = explode(" ",$id1);
+					foreach($ids AS $id) {
+						$myid = $ns1.":".$id;
 						parent::addRDF(
 							parent::triplify($uri,parent::getVoc().strtolower($k),$myid)
 						);
