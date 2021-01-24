@@ -488,13 +488,13 @@ class KEGGParser extends Bio2RDFizer
 				$ids = explode(",",$a[0]);
 				if($k == "REACTION" and $ids[0][0] != "R")  {echo "unable to parse $k".PHP_EOL;continue;}
 				if(!isset($a[1])) {
-					if($e['type'] == "Reaction") {
+					if($e['type'] == "Reaction" or $e['type'] == "CDS") {
 						parent::addRDF(
 							parent::triplify($uri, parent::getVoc()."orthology","kegg:".trim($a[0]))
 						);
 						continue;
 					}
-					echo "parse error: ".$k." ".$v.PHP_EOL;continue;
+					echo "parse error: ".$lfile." ". $k." ".$v.PHP_EOL;continue;
 				}
 				$str = $a[1];
 
