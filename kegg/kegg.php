@@ -488,7 +488,10 @@ class KEGGParser extends Bio2RDFizer
 
 				$a = explode(" ",$v,2);
 				$ids = explode(",",$a[0]);
-				if($k == "REACTION" and $ids[0][0] != "R")  {echo "unable to parse $k".PHP_EOL;continue;}
+				if($k == "REACTION" and $ids[0][0] != "R")  {
+					# no reaction id specified. ignorning
+					continue;
+				}
 				if(!isset($a[1])) {
 					if($e['type'] == "Reaction" or $e['type'] == "CDS") {
 						parent::addRDF(
