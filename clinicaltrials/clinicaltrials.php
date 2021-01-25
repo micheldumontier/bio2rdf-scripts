@@ -810,11 +810,13 @@ class ClinicalTrialsParser extends Bio2RDFizer
 			foreach($links AS $i => $link) {
 				$url = $this->getString('./url',$link);
 				$url = preg_replace("/>.*$/","",$url);
+				# nonsense http://dr,khalidsalama@gmail.com
+				$url = str_replace ("http://dr,","mailto:dr.",$url);
 				$lid = parent::getRes().md5($url);
 				parent::addRDF(
 					parent::describeIndividual($lid, $this->getString('./description',$link), parent::getVoc()."Link").
 					parent::describeClass(parent::getVoc()."Link","Link").
-					parent::triplify($lid,parent::getVoc()."url",$url).
+					parent::triplify($lid,parent::getVoc()."url",parent::makeSafeIRI($url)).
 					parent::triplify($study_id,parent::getVoc()."link",$lid)
 				);
 			}
