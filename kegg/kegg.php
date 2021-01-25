@@ -252,24 +252,30 @@ class KEGGParser extends Bio2RDFizer
 			$this->parseEntry($lfile);
 			parent::writeRDFBufferToWriteFile();
 			
-			/* KEGG replies that downloading the KGML files directly is forbidden
+			/* KEGG replies that downloading the KGML files directly is forbidden */
 			if($db === "pathway") {
 					$ko = str_replace("map","ko",$id);
 					$lfile = $ldir.$id.".kgml";					          
 					$rfile = "https://www.kegg.jp/kegg-bin/download?entry=".$ko."&format=kgml";
 					if(!file_exists($lfile) || parent::getParameterValue('download') == 'true') {
-						echo "downloading KGML for $nsid ";
-						$ret = utils::downloadSingle($rfile,$lfile);
+						#echo "downloading KGML for $nsid ";
+						$context = stream_context_create(
+							array(
+								'http' => array(
+									'header'  => "Referer: https://kegg.jp"
+								)
+						));
+						$ret = utils::downloadSingle($rfile,$lfile, false, $context);
 						if($ret === false) {
 							echo "unable to download ".$nsid." ... skipping".PHP_EOL;
 							continue;
 						}
-						echo "done. ";
+						#echo "done. ";
 					}
 					$this->parseKGML($lfile);
 					parent::writeRDFBufferToWriteFile();
 			}
-			*/
+			
 			#echo "done!".PHP_EOL;
 		}
 	}
@@ -873,19 +879,26 @@ class KEGGParser extends Bio2RDFizer
 							<product id="90" name="cpd:C00668"/>
 						</reaction>
 				*/
-				$reaction_id = str_replace("kegg","kegg_resource",$pathway_id).".".substr($item['name'], strpos($item['name'],":")+1);
-				$reaction_type = parent::getVoc().ucfirst($item['type'])."-Reaction";
-				parent::addRDF(
-					parent::describeIndividual($reaction_id, $item['name'], parent::getVoc()."Reaction").
-					parent::describeClass(parent::getVoc()."Reaction", "KEGG Reaction").
-					parent::triplify($reaction_id, "rdf:type", $reaction_type)
-				);
-
-				foreach($item->children() AS $k => $v) {
-					$cid = str_replace("cpd:","kegg:",$v['name']);
+				$rxn_ids = explode(" ",$item['name']);
+				foreach($rxn_ids AS $rxn_id) {
+					$id = substr($rxn_id, strpos($rxn_id,":")+1);
+					$reaction_id = str_replace("kegg","kegg_resource",$pathway_id).".".$id;
+					$reaction_type = parent::getVoc().ucfirst($item['type'])."-Reaction";
 					parent::addRDF(
-						parent::triplify($reaction_id, parent::getVoc().$k, $cid)
+						parent::describeIndividual($reaction_id, $item['name'], parent::getVoc()."Reaction").
+						parent::describeClass(parent::getVoc()."Reaction", "KEGG Reaction").
+						parent::triplify($reaction_id, "rdf:type", $reaction_type)
 					);
+
+					foreach($item->children() AS $k => $v) {
+						$cids = explode(" ",$v);
+						foreach($cids AS $cid) {
+							$cid = str_replace("cpd:","kegg:",$cid);
+							parent::addRDF(
+								parent::triplify($reaction_id, parent::getVoc().$k, $cid)
+							);
+						}
+					}
 				}
 			}
 		}
