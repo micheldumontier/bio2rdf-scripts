@@ -170,10 +170,13 @@ class GOAParser extends Bio2RDFizer
  				parent::describeClass(parent::getVoc()."GO-Annotation","GO Annotation").
 				parent::triplifyString($eid,parent::getVoc()."symbol",$symbol)
 			);
-			parent::addRDF(
-				parent::triplify($eid,parent::getVoc()."x-taxonomy",$taxid)
-			);
-			
+			$taxids = explode("|",$taxid);
+			foreach($taxids AS $t) {
+				parent::addRDF(
+					parent::triplify($eid,parent::getVoc()."x-taxonomy",$t)
+				);
+			}
+				
 			foreach($synonyms as $s){
 				if(!empty($s)){
 					parent::addRDF(
