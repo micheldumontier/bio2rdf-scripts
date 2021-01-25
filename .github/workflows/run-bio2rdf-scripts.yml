@@ -25,6 +25,7 @@ jobs:
       with:
         php-version: '7.4'
         ini-values: memory_limit=6144M, max_execution_time=600
+        extensions: mbstring,curl,openssl,ftp
         # Issue with default PHP 8.0 (4 error handling args instead of 5 expected)
 
     ## Setting up the environment

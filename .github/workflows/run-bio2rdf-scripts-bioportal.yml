@@ -27,7 +27,7 @@ jobs:
       with:
         php-version: '7.4'
         ini-values: memory_limit=6144M, max_execution_time=600
-        extensions: mbstring,curl,openssl
+        extensions: mbstring,curl,openssl,ftp
 
     ## Setting up the environment
     # https://github.com/bio2rdf/bio2rdf-scripts/wiki/Setting-up-the-developer-environment
