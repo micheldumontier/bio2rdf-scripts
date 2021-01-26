@@ -1,0 +1,85 @@
+name: Manual Build
+on:
+  workflow_dispatch:
+    inputs:
+      parser:
+        required: true
+        description: "Specify the parser to run"
+      files:
+        required: true
+        description: "limit to specific files"
+        default: "all"
+      version:
+        required: true
+        description: "the version identifier"
+        default: "5"
+jobs:
+  generate-rdf:
+    runs-on: ubuntu-latest
+
+    steps:
+    ## Setting up the environment
+    - name: Setup PHP with PECL extension
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '7.4'
+        ini-values: memory_limit=6144M, max_execution_time=600
+        extensions: mbstring,curl,openssl,ftp
+    
+    ## bio2rdf scripts and dependencies    
+    - uses: actions/checkout@v2
+      with:
+        repository: 'semsol/arc2'
+        path: 'arc2'
+
+    - uses: actions/checkout@v2
+      with:
+        repository: 'micheldumontier/php-lib'
+        path: 'php-lib'
+
+    - uses: actions/checkout@v2
+      with:
+        path: 'bio2rdf-scripts'
+
+    - name: Create data folders
+      working-directory: ./bio2rdf-scripts
+      run: |
+        mkdir -p data/download
+        mkdir -p data/rdf
+
+    ## Run the Bio2RDF PHP parsers
+    - name: Run ${{ github.event.inputs.parser }} parser
+      working-directory: ./bio2rdf-scripts
+      run: |
+        php runparser.php parser=${{ github.event.inputs.parser }} download=true files=${{ github.event.inputs.files }} indir=data/download/${{ github.event.inputs.parser }}/ outdir=data/rdf/${{ github.event.inputs.parser }}/ registry_dir=registry ncbo_api_key=${{ secrets.NCBO_API_KEY }} drugbank_login=${{ secrets.DRUGBANK_LOGIN }}
+
+    - name: Upload output RDF data
+      uses: actions/upload-artifact@v1
+      with:
+        name: bio2rdf-${{ github.event.inputs.parser }}-${{ github.event.inputs.version }}-output
+        path: bio2rdf-scripts/data
+
+  load-rdf:
+    runs-on: ubuntu-latest
+    needs: generate-rdf
+    
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Get RDF output artifact from previous job
+      uses: actions/download-artifact@v1
+      with:
+        name: bio2rdf-${{ github.event.inputs.parser }}-${{ github.event.inputs.version }}-output
+
+    - name: Generate HDT compressed file from RDF output
+      uses: vemonet/rdfhdt-action@master
+      with:
+        input: rdf-output/rdf/${{ github.event.inputs.parser }}/${{ github.event.inputs.parser }}.nq.gz
+        output: hdt-${{ github.event.inputs.parser }}.hdt
+
+    - name: Upload HDT output artifact to GitHub
+      uses: actions/upload-artifact@v1
+      with:
+        name: hdt-output
+        path: hdt-${{ github.event.inputs.parser }}.hdt
+
