@@ -123,7 +123,9 @@ class DrugBankParser extends Bio2RDFizer
 			$bVersion = parent::getParameterValue('bio2rdf_release');
 			$prefix = parent::getPrefix();
 			$date = date ("Y-m-d\TH:i:sP");
+
 			// dataset description
+			$rfile = parent::getParameterValue('download_url');
 			$source_file = (new DataResource($this))
 			->setURI($rfile)
 			->setTitle("DrugBank ($file)")
@@ -145,7 +147,7 @@ class DrugBankParser extends Bio2RDFizer
 			->setCreator("https://github.com/bio2rdf/bio2rdf-scripts/blob/master/drugbank/drugbank.php")
 			->setCreateDate($date)
 			->setHomepage("http://download.bio2rdf.org/release/$bVersion/$prefix/$prefix.html")
-			->setPublisher("http://bio2rdf.org")			
+			->setPublisher("http://bio2rdf.org")
 			->setRights("use-share-modify")
 			->setRights("by-attribution")
 			->setRights("restricted-by-source-license")
