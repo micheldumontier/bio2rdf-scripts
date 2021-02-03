@@ -135,10 +135,8 @@ class ORPHANETParser extends Bio2RDFizer
 			$version = $x->attributes()->version;
 			
 			foreach($x->Disorder AS $d) {
-				// var_dump($d);exit;
-
 				$internal_id = (string) $d->attributes()->id;
-				$orphanet_id = parent::getNamespace().((string)$d->OrphaNumber);
+				$orphanet_id = parent::getNamespace().((string)$d->OrphaCode);
 				$name = (string) $d->Name;
 				$expert_link = (string) $d->ExpertLink;
 				
@@ -148,6 +146,7 @@ class ORPHANETParser extends Bio2RDFizer
 					parent::triplifyString($orphanet_id, parent::getVoc()."internal-id", $internal_id).
 					parent::triplify($orphanet_id, parent::getVoc()."expert-link-url", $expert_link)
 				);
+
 				// get the synonyms
 				foreach($d->SynonymList AS $s) {
 					$synonym = str_replace('"','', (string) $s->Synonym);
@@ -202,8 +201,8 @@ class ORPHANETParser extends Bio2RDFizer
 		while($xml->parse("DisorderList") == TRUE) {
 			$x = $xml->GetXMLRoot();
 			foreach($x->Disorder AS $d) {
-				
-				$orphanet_id = parent::getNamespace().((string)$d->OrphaNumber);
+				#var_dump($x);exit;
+				$orphanet_id = parent::getNamespace().((string)$d->OrphaCode);
 				$disease_name = (string) $d->Name;
 
 				foreach($d->PrevalenceList->Prevalence AS $pl) {
@@ -298,8 +297,8 @@ class ORPHANETParser extends Bio2RDFizer
 		while($xml->parse("DisorderList") == TRUE) {
 			$x = $xml->GetXMLRoot();
 			foreach($x->Disorder AS $d) {
-				// var_dump($d);exit;
-				$orphanet_id = parent::getNamespace().((string)$d->OrphaNumber);
+				var_dump($d);exit;
+				$orphanet_id = parent::getNamespace().((string)$d->OrphaCode);
 				$disease_name = (string) $d->Name;
 				foreach($d->PrevalanceList AS $pl) {
 					$id = parent::getNamespace().((string) $pl->attributes()->id);
@@ -384,7 +383,7 @@ class ORPHANETParser extends Bio2RDFizer
 		while($xml->parse("HPODisorderSetStatus") == TRUE) {
 			$x = $xml->GetXMLRoot();
 			foreach($x->Disorder AS $d) {
-				$orphanet_id = parent::getNamespace().((string)$d->OrphaNumber);
+				$orphanet_id = parent::getNamespace().((string)$d->OrphaCode);
 				$disease_name = ((string)$d->Name);
 				foreach($d->HPODisorderAssociationList->HPODisorderAssociation AS $ds) {
 					$sfid = parent::getRes()."sf".((string)$ds->attributes()->id);
@@ -470,7 +469,7 @@ class ORPHANETParser extends Bio2RDFizer
 		while($xml->parse("DisorderList") == TRUE) {
 			$x = $xml->GetXMLRoot();
 			foreach($x->Disorder AS $d) {
-				$orphanet_id = parent::getNamespace().((string)$d->OrphaNumber);
+				$orphanet_id = parent::getNamespace().((string)$d->OrphaCode);
 				$disorder_name = (string) $d->Name;
 
 				foreach($d->DisorderGeneAssociationList->DisorderGeneAssociation AS $dga) {
