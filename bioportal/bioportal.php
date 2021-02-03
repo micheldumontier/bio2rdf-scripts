@@ -512,14 +512,17 @@ class BioportalParser extends Bio2RDFizer
 				// id-validation-regexp:\"REACT_[0-9\]\{1\,4}\\.[0-9\]\{1\,3}|[0-9\]+\"
 				//$a[1] = 'id-validation-regexp:\"REACT_[0-9\]\{1\,4}\\.[0-9\]\{1\,3}|[0-9\]+\"';
 					if(substr($a[1],0,4) == "http") {
-						$buf .= parent::triplify($tid,"rdfs:seeAlso", str_replace( array(" ",'"wiki"',"\\"), array("+","",""), $a[1]));
+						// http://identifiers.org/hgnc/16982 {source="GARD:0006963"}
+						$url = preg_replace("/{.*\}/","",$a[1]);
+						$buf .= parent::triplify($tid,"rdfs:seeAlso", str_replace( array(" ",'"wiki"',"\\"), array("+","",""), $url));
 					} else {
 						$b = explode(":",$a[1],2);
 						if(isset($b[1])) {
 							if(substr($b[1],0,4) == "http") {
 								// https://en.wikipedia.org/wiki/Prolamin {source="SUBMITTER"}
 								$url = preg_replace("/{.*\}/","",$b[1]);
-								$url = str_replace("http\:","http:", $url);
+								$url = str_replace(array("http\:","https\:"), "http:", $url);
+								#echo $url.PHP_EOL;
 								$buf .= parent::triplify($tid,"rdfs:seeAlso", parent::makeSafeIRI($url));
 							} else {
 								$ns = str_replace(array(" ","\\",) ,"",strtolower($b[0]));
@@ -532,7 +535,10 @@ class BioportalParser extends Bio2RDFizer
 								}
 								$id = stripslashes($id);
 								// there may be a source statement to remove
-								$id = preg_replace("/{.*\}/","",$id);
+								#echo $id.PHP_EOL;
+								$id = preg_replace("/\{.*\}/","",$id);
+								if($id == '1001251"}') continue;
+
 								if($ns == "pmid") {
 									$ns = "pubmed";
 									$y = explode(" ",$id);
@@ -553,8 +559,9 @@ class BioportalParser extends Bio2RDFizer
 									$buf .= parent::triplifyString($tid,"obo_vocabulary:$ns", $id);
 								} else {
 									if($ns) {
+										// orphanet107{source="efo:1001251"}
 										$id = str_replace(array(" ",",","#","<",">"),array("%20","%2C","%23","%3C","%3E"),$id);
-										$buf .= parent::triplify($tid,"obo_vocabulary:x-$ns", "$ns:$id");
+										$buf .= parent::triplify($tid,"obo_vocabulary:x-$ns", "$ns:".parent::safeLiteral($id));
 									}
 								}
 							}
@@ -564,7 +571,7 @@ class BioportalParser extends Bio2RDFizer
 					// synonym: "entidades moleculares" RELATED [IUPAC:]
 					// synonym: "molecular entity" EXACT IUPAC_NAME [IUPAC:]
 					// synonym: "Chondrococcus macrosporus" RELATED synonym [NCBITaxonRef:Krzemieniewska_and_Krzemieniewski_1926]
-					
+					// synonym: "cerebral amyloid angiopathy, ITM2B-Related, type 2" EXACT [MONDORULE:1, OMIM:117300]
 					//grab string inside double quotes			
 					preg_match('/"(.*)"(.*)/', $a[1], $matches);
 					
@@ -579,7 +586,7 @@ class BioportalParser extends Bio2RDFizer
 					$found = false;
 					foreach($list AS $keyword) {
 					  // get everything after the keyword up until the bracket [
-					  if(FALSE !== ($k_pos = strpos($a[1],$keyword))) {
+					  if(FALSE !== ($k_pos = strrpos($a[1],$keyword))) {
 						$str_len = strlen($a[1]);
 						$keyword_len = strlen($keyword);
 						$keyword_end_pos = $k_pos+$keyword_len;
@@ -591,6 +598,7 @@ class BioportalParser extends Bio2RDFizer
 							// then there is more stuff here
 							$k = substr($a[1],$keyword_end_pos+1,$diff);
 							$rel = trim($k);
+							if($tid == "mondo:0008484") continue; # error in parsing of synonym type as it occurs capitalised in the term...
 						} else {
 							// create the long predicate
 							$rel = $keyword."_SYNONYM";
@@ -608,10 +616,11 @@ class BioportalParser extends Bio2RDFizer
 						$b1_pos = strrpos($a[1],"[");
 						$str = substr($a[1],0,$b1_pos-1);
 					} 
-					   
-					$rel = str_replace(" ","_",$rel);
+
+					#$rel = str_replace(" ","_",$rel);
 					// $lit = addslashes($str.($b_text?" [".$b_text."]":""));
-					$l = parent::triplifyString($tid,"obo_vocabulary:".strtolower($rel), $str);
+					// synonym: "cerebral amyloid angiopathy, ITM2B-Related, type 2" EXACT [MONDORULE:1, OMIM:117300]
+					$l = parent::triplifyString($tid,"obo_vocabulary:".strtolower($rel), parent::safeLiteral($str));
 					$buf .= $l;
 					
 				} else if($a[0] == "alt_id") {
@@ -622,7 +631,9 @@ class BioportalParser extends Bio2RDFizer
 					
 				} else if($a[0] == "is_a") {
 					// do subclassing
-					parent::getRegistry()->parseQName($a[1],$ns,$id);
+					// is_a: MONDO:0000640 {source="DOID:3870", source="MONDO:Redundant", source="MONDOLEX:0002798", source="NCIT:C5961"} ! central nervous system primitive neuroectodermal neoplasm
+					$url = preg_replace("/{.*\}/","",$a[1]);
+					parent::getRegistry()->parseQName($url,$ns,$id);
 					if(trim($ns) == '') $ns = "unspecified";
 					$t = parent::triplify($tid,"rdfs:subClassOf","$ns:$id");
 					$buf .= $t;
