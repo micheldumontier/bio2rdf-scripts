@@ -34,7 +34,7 @@ class BioportalParser extends Bio2RDFizer
 	function __construct($argv) {
 		parent::__construct($argv,'bioportal');
 		parent::addParameter('files',true,null,'all','all or comma-separated list of ontology short names to process');
-		parent::addParameter('download_url',false,null,'http://data.bioontology.org/');
+		parent::addParameter('download_url',false,null,'https://data.bioontology.org/');
 		parent::addParameter('exclude',false,null,"AURA,HOOM",'ontologies to exclude - use acronyms');
 		parent::addParameter('continue_from',false,null,"",'the ontology abbreviation to restart from');
 		parent::addParameter('detail',false,'min|min+|max','max','min:generate rdfs:label and rdfs:subClassOf axioms; min+: min + owl axioms');
@@ -132,6 +132,7 @@ class BioportalParser extends Bio2RDFizer
 				curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 				curl_setopt($ch, CURLOPT_TIMEOUT,        600);
+				curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
 				$data = curl_exec($ch);
 				if(empty($data)) {
 					echo "no content";
