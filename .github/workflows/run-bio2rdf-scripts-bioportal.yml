@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         parser: ['bioportal']
-        files: ['GO','ECO','CHEBI','MP','HP','DOID','PATO','CL','MI','UO']
+        files: ['APO','GO','ECO','CHEBI','MP','HP','DOID','PATO','CL','MI','UO']
 
     steps:
     - name: Setup PHP with PECL extension
