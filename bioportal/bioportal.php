@@ -125,17 +125,22 @@ class BioportalParser extends Bio2RDFizer
 				echo "downloading ... ";
 
 				$ch = curl_init(); // create cURL handle (ch)
+				$url = $rfile.$apikey;
 				if (!$ch) die("Couldn't initialize a cURL handle");
-				$ret = curl_setopt($ch, CURLOPT_URL,            $rfile.$apikey);
-				$ret = curl_setopt($ch, CURLOPT_HEADER,         1);
-				$ret = curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-				$ret = curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-				$ret = curl_setopt($ch, CURLOPT_TIMEOUT,        600);
-				$ret = curl_exec($ch);
-				if(!$ret) {echo "no content";continue;}
+				curl_setopt($ch, CURLOPT_URL,            $url);
+				curl_setopt($ch, CURLOPT_HEADER,         1);
+				curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+				curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+				curl_setopt($ch, CURLOPT_TIMEOUT,        600);
+				$data = curl_exec($ch);
+				curl_close($ch);
+				if(empty($data)) {
+					echo "no content";
+					continue;
+				}
 
 				$header_size = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-				$header = substr($ret, 0, $header_size);
+				$header = substr($data, 0, $header_size);
 				preg_match("/filename=\"([^\"]+)\"/",$header,$m);
 				if(isset($m[1])) {
 					$filename = $m[1];
@@ -143,7 +148,7 @@ class BioportalParser extends Bio2RDFizer
 
 				} else {echo "error: no filename".PHP_EOL;continue;}
 
-				$body = substr($ret, $header_size);
+				$body = substr($data, $header_size);
 				// now get the file suffix
 				$path = pathinfo($filename);
 				if(isset($path['extension'])) $ext  = $path['extension'];
