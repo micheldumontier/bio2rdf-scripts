@@ -324,7 +324,7 @@ class PubmedParser extends Bio2RDFizer
 					if(substr($chemical->RegistryNumber,0,2) == "EC") {
 						$ec = substr($chemical->RegistryNumber,3);
 						parent::addRDF(
-							parent::triplify($id, parent::getVoc()."x-ec", "ec:".$ec)
+							parent::triplify($id, parent::getVoc()."x-ec", "ec:".str_replace(" ",".",$ec))
 						);				
 					} else {
 						parent::addRDF(
