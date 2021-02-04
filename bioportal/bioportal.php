@@ -133,7 +133,6 @@ class BioportalParser extends Bio2RDFizer
 				curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
 				curl_setopt($ch, CURLOPT_TIMEOUT,        600);
 				$data = curl_exec($ch);
-				curl_close($ch);
 				if(empty($data)) {
 					echo "no content";
 					continue;
@@ -156,7 +155,7 @@ class BioportalParser extends Bio2RDFizer
 
 				$lz = "compress.zlib://".$idir.$lfile;
 				file_put_contents($lz,$body);
-
+				curl_close($ch);
 				echo "done".PHP_EOL;
 			}
 
