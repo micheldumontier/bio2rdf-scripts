@@ -34,8 +34,8 @@ class irefindexParser extends Bio2RDFizer
 	function __construct($argv) { //
 		parent::__construct($argv,"irefindex");
 		parent::addParameter('files',true,'all|10090|10116|4932|559292|562|6239|7227|9606','all','all or comma-separated list of files to process');
-		parent::addParameter('version',false,'07042015|08122013|03022013|10182011','05-29-2019','dated version of files to download');
-		parent::addParameter('download_url',false,null,'https://irefindex.vib.be/download/irefindex/data/archive/release_16.0/psi_mitab/MITAB2.6/');
+		parent::addParameter('version',false,'27062020|05292019|07042015|08122013|03022013|10182011',"27062020" /*'05-29-2019'*/,'dated version of files to download');
+		parent::addParameter('download_url',false,null,'https://irefindex.vib.be/download/irefindex/data/archive/release_17.0/psi_mitab/MITAB2.6/');
 		parent::initialize();
 	}
 	
@@ -75,23 +75,32 @@ class irefindexParser extends Bio2RDFizer
 					return FALSE;
 				}
 			}
-			
+
+			// Prior to 27062020, irefindex used zip archives. as of 27062020 they gzip the file
+			// @todo enable backwards compatibility for data processing
+			/*
 			$zin = new ZipArchive();
-			if ($zin->open($lfile) === FALSE) {
-				trigger_error("Unable to open $lfile");
+			$ret = $zin->open($lfile, ZipArchive::RDONLY);
+			if ($ret !== true) {
+				trigger_error("Unable to open $lfile",E_USER_ERROR);
 				exit;
 			}
-			if($zin->numFiles != 1) {
-				trigger_error("Found more than one file ... using first file");
+			if($zin->numFiles == 0) {
+				trigger_error("Found no entry in the zipfile",E_USER_ERROR);
+				exit;
 			}
 			$f = $zin->statIndex(0);
 			$base_file = $f['name'];
 			if(($fp = $zin->getStream($base_file)) === FALSE) {
-				trigger_error("Unable to get $base_file in ziparchive $lfile");
+				trigger_error("Unable to get $base_file in ziparchive $lfile",E_USER_ERROR);
 				return FALSE;
 			}
 			parent::setReadFile($lfile);
 			parent::getReadFile()->setFilePointer($fp);
+			*/
+			$fp = gzopen($lfile,"rb");
+			parent::setReadFile($lfile);
+			parent::getReadFile()->setFilePointer($fp);	
 				
 			echo "Processing ".$file." ...";
 			parent::setWriteFile($odir.$ofile, true);
@@ -103,7 +112,7 @@ class irefindexParser extends Bio2RDFizer
 			
 			parent::writeRDFBufferToWriteFile();
 			parent::getWriteFile()->close();
-			$zin->close();
+			//$zin->close();
 			echo "Done!".PHP_EOL;
 		
 			$graph_uri = parent::getGraphURI();
@@ -160,7 +169,7 @@ class irefindexParser extends Bio2RDFizer
 		$l = parent::getReadFile()->read(100000);
 		$header = explode("\t",trim(substr($l,1)));
 		if(($c = count($header)) != 54) {
-			trigger_erorr("Expecting 54 columns, found $c!");
+			trigger_error("Expecting 54 columns, found $c!",E_USER_ERROR);
 			return FALSE;
 		}
 		#print_r($header);exit;
@@ -190,14 +199,28 @@ class irefindexParser extends Bio2RDFizer
 				print_r($ids);
 				exit;
 			}
-			parent::getRegistry()->parseQName($ids[0],$ns,$id);
+			parent::getRegistry()->parseQName(str_replace('"','',$ids[0]),$ns,$id);
 			if($id == '-') {
 				// this happens with hprd
 				$iid = "hprd:".substr($ids[1],6);
 			} else {
-				$iid = $ns.":".$id;
+				// psi-mi:"MI:0471"
+				// protein ontology:PR:000024937
+				// intenz:EC 2.3.1.48
+				parent::getRegistry()->parseQName($id, $ns1, $id1);
+				#echo $ns1.$id1.PHP_EOL;
+				if(is_null($ns1)) {
+					$iid = $ns.":".$id;
+				} else {
+					if ($ns1 == "intenz") {
+						$iid = str_replace(" ",":",$id);
+					} else {
+							$ns = $ns1;
+							$iid = "$ns:$id1";
+					}
+				}
 			}
-
+#print_r($ids);
 			// get the type
 			if($a[52] == "X") {
 				$label = "$a[0] - $a[1] Interaction";
@@ -318,7 +341,7 @@ class irefindexParser extends Bio2RDFizer
 				foreach($list AS $item) {
 					$data = $this->ParseStringArray($item);
 					$ns = trim($data["ns"]);
-					$id = trim($data["id"]);
+					$id = str_replace(array("{","}",",","[","]","^"), array("%7B","%7D","%3B","%5B","%5D","&#8248;"), trim($data["id"]));
 					$qname = $ns.":".$id;
 					if($ns && $ns != 'rogid' && $ns != 'irogid' and $ns != 'icrogid' and $id != '-') {
 						parent::addRDF(
@@ -449,6 +472,7 @@ class irefindexParser extends Bio2RDFizer
 	}
 
 	function ParseStringArray($string){
+		$string = str_replace('"','',$string);
 		parent::getRegistry()->parseQName($string,$ns,$str);
 		
 		$rm = $this->ParseIDLabelArray($str);
@@ -463,6 +487,8 @@ class irefindexParser extends Bio2RDFizer
 			$returnMe["label"] = $label;
 			$returnMe["id"] = $id;
 			$returnMe["ns"] = $ns;
+			if($ns == "psi-mi") $returnMe["id"] = str_replace("MI:","",str_replace(",","",$id));
+			
 			return $returnMe;
 		} else {
 			return null;
