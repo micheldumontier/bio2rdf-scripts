@@ -57,6 +57,8 @@ class OMIMParser extends Bio2RDFizer
 				trigger_error("No OMIM key has been provided either by commmand line or in the expected omim key file $key_file",E_USER_WARNING);	
 				exit;
 			}
+		} else {
+			$key = parent::getParameterValue('omim_api_key');
 		}
 
 		// get the list of entries
@@ -84,13 +86,19 @@ class OMIMParser extends Bio2RDFizer
 		if($list != 'all') {
 			// check if a hyphenated list was provided
 			if(($pos = strpos($list,"-")) !== FALSE) {
-				$start_range = substr($list,0,$pos);
-				$end_range = substr($list,$pos+1);
+				$list = explode("-",$list);
+
+				$start_range = $list[0];
+				if(isset($list[1])) $end_range = $list[1];
 
 				// now intersect
 				foreach($full_list AS $e => $type) {
-					if($e >= $start_range && $e <= $end_range) {
-						$myentries[$e] = $type;
+					if($e >= $start_range) {
+						if(isset($end_range) && $e <= $end_range) {
+							$myentries[$e] = $type;
+						} else {
+							$myentries[$e] = $type;
+						}
 					}
 				}
 				$entries = $myentries;
@@ -126,11 +134,22 @@ class OMIMParser extends Bio2RDFizer
 			if(!file_exists($lfile) || parent::getParameterValue('download') == true) {
 				// download using the api
 				$rfile = parent::getParameterValue('omim_api_url').'&apiKey='.parent::getParameterValue('omim_api_key').'&mimNumber='.$omim_id;
-				Utils::DownloadSingle($rfile, $lfile);
+				$ret = Utils::DownloadSingle($rfile, $lfile);
+				if($ret === false) {
+					#trigger_error("Unable to retrieve $rfile . Quitting due to error",E_USER_ERROR);
+					echo "Unable to download $rfile".PHP_EOL;
+					#continue;
+					return false;
+				}
 			}
 			
 			// load entry, parse and write to file
-			$entry = json_decode(file_get_contents($gzfile), true);
+			$content = file_get_contents($gzfile);
+			if($content === FALSE) {
+				trigger_error("Unable to read local $gzfile",E_USER_ERROR);
+				return false;
+			}
+			$entry = json_decode($content, true);
 			$omim_id = trim((string)$entry["omim"]["entryList"][0]["entry"]['mimNumber']);
 			echo $omim_id;
 			$this->ParseEntry($entry,$type);
@@ -291,10 +310,13 @@ class OMIMParser extends Bio2RDFizer
 
 		// check if moved
 		if(isset($o['movedTo'])) {
-			$new_omim_uri = parent::getNamespace().$o['movedTo'];
-			parent::addRDF(
-				parent::triplify($omim_uri, parent::getVoc()."superceded-by", $new_omim_uri)
-			);
+			$list = explode(",",$o['movedTo']);
+			foreach($list as $new_omim_uri) {
+				$new_omim_uri = parent::getNamespace().$new_omim_uri;
+				parent::addRDF(
+					parent::triplify($omim_uri, parent::getVoc()."superceded-by", $new_omim_uri)
+				);
+			}
 		}
 
 		// parse text sections
@@ -424,9 +446,11 @@ class OMIMParser extends Bio2RDFizer
 				parent::addRDF(parent::triplifyString($omim_uri, parent::getVoc()."cytolocation", (string)  $map['cytoLocation']));
 			}
 			if(isset($map['geneSymbols'])) {
+				
 				$b = preg_split("/[,;\. ]+/",$map['geneSymbols']);
 				foreach($b AS $symbol) {
-					parent::addRDF(parent::triplify($omim_uri, parent::getVoc()."gene-symbol", "symbol:".trim($symbol)));
+					$s = str_replace("`","",$symbol);
+					parent::addRDF(parent::triplify($omim_uri, parent::getVoc()."gene-symbol", "symbol:".trim($s)));
 				}
 			}
 
@@ -476,9 +500,11 @@ class OMIMParser extends Bio2RDFizer
 					if(in_array($k, array("mimNumber","phenotypeMimNumber","phenotypicSeriesMimNumber"))) {
 						parent::addRDF(parent::triplify($pm_uri, parent::getVoc().$k, "omim:".$phenotypeMap[$k]));
 					} else if($k == "geneSymbols") {
-						$l = explode(", ",$phenotypeMap[$k]);
+						$v = $phenotypeMap[$k];
+						$l = explode(", ",$v);
 						foreach($l AS $gene) {
-							parent::addRDF(parent::triplify($pm_uri, parent::getVoc()."gene-symbol", "hgnc.symbol:".$gene));
+							$url_safe_gene = urlencode($gene);
+							parent::addRDF(parent::triplify($pm_uri, parent::getVoc()."gene-symbol", "hgnc.symbol:".$url_safe_gene));
 						}
 					} else if ($k == "phenotypeMappingKey") {
 						$l = $this->get_phenotype_mapping_method_type($phenotypeMap[$k]);
@@ -501,7 +527,10 @@ class OMIMParser extends Bio2RDFizer
 					$title = 'article';
 					if(isset($r['title']))  $title = $r['title'];
 					parent::addRDF(parent::describe($pubmed_uri, addslashes($r['title'])));
-					if(isset($r['articleUrl'])) parent::addRDF($this->QQuadO_URL($pubmed_uri, "rdfs:seeAlso", htmlentities($r['articleUrl']))); 
+					if(isset($r['articleUrl'])) {
+						#echo $r['articleUrl'].PHP_EOL;
+						parent::addRDF($this->QQuadO_URL($pubmed_uri, "rdfs:seeAlso", parent::makeSafeIRI($r['articleUrl']))); 
+					}
 				}
 			}
 		}
@@ -571,17 +600,20 @@ class OMIMParser extends Bio2RDFizer
 						echo "unhandled external link $k $id".PHP_EOL;
 				}
 
-				$ids = explode(",",$id);
-				foreach($ids AS $id) {
-					if($ns) {
-						if(strstr($id,";;") === FALSE) {
-							parent::addRDF(parent::triplify($omim_uri, parent::getVoc()."x-$ns", $ns.':'.$id)); 
-						} else {
-							$b = explode(";;",$id); // multiple ids//names
-							foreach($b AS $c) {
-								preg_match("/([a-z])/",$c,$m);
-								if(!isset($m[1])) {
-									parent::addRDF(parent::triplify($omim_uri, parent::getVoc()."x-$ns", $ns.':'.$c)); 
+				if($ns) {				
+					$list = explode(";;;",$id); #first separator				
+					foreach($list AS $item) {
+						$list2 = explode(";;",$item); # second separator
+						foreach($list2 as $item2) {
+							if($ns == "orphanet") {
+								preg_match("/^[0-9]+$/",$item2,$m);
+								if(isset($m[0])) {
+									parent::addRDF(parent::triplify($omim_uri, parent::getVoc()."x-$ns", $ns.':'.$item2)); 
+								}
+							} else {
+								$list3 = explode(",",$item2); # third separator
+								foreach($list3 as $item3) {
+									parent::addRDF(parent::triplify($omim_uri, parent::getVoc()."x-$ns", $ns.':'.$item3)); 
 								}
 							}
 						}
