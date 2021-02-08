@@ -112,7 +112,9 @@ class BioportalParser extends Bio2RDFizer
 			if(!isset($ls['hasOntologyLanguage'])) {echo 'insufficient metadata'.PHP_EOL;continue;}
 
 			$format = strtolower($ls['hasOntologyLanguage']);
-			if($format != 'owl' and $format != 'obo') continue;
+			if($abbv == "ATC") $format = 'ttl';
+			
+			if(!in_array($format, array('owl','obo','ttl'))) continue;
 			echo "Processing ($i/$total) $abbv ... ";
 
 			$version = $ls['version'];
@@ -151,6 +153,7 @@ class BioportalParser extends Bio2RDFizer
 				$body = substr($data, $header_size);
 				// now get the file suffix
 				$path = pathinfo($filename);
+				#print_r($path);
 				if(isset($path['extension'])) $ext  = $path['extension'];
 				else {echo "error: no extension".PHP_EOL; continue;}
 
@@ -170,24 +173,27 @@ class BioportalParser extends Bio2RDFizer
 				echo "converting ... ";
 				
 				// let's double check the format
-				$fp = gzopen($idir.$lfile,"r");
+				$fp = gzopen($idir.$lfile,"rb");
 				$l = gzgets($fp);
 				if(strstr($l,"xml")) $format= "owl";
 				gzclose($fp);
 
 				if($format == 'obo') {
 					$this->OBO2RDF($abbv);
+				} else if($format == 'ttl') {
+					$this->OWL2RDF($abbv, "Turtle");
+					if(isset($this->unmapped_uri)) print_r($this->unmapped_uri);
+					unset($this->unmapped_uri);
 				} else if($format == 'owl') {
 					$this->OWL2RDF($abbv);
 					if(isset($this->unmapped_uri)) print_r($this->unmapped_uri);
 					unset($this->unmapped_uri);
 				} else {
 					echo "no processor for $label (format $format)".PHP_EOL;
-				}
-
-				if(!file_exists($odir.$ofile)) { echo "no output".PHP_EOL;continue;}
+				}				
 				parent::getWriteFile()->close();
 				parent::clear();
+				if(!file_exists($odir.$ofile)) { echo "no output".PHP_EOL;continue;}
 
 				$bVersion = parent::getParameterValue('bio2rdf_release');
 				$source_file = (new DataResource($this))
@@ -231,12 +237,16 @@ class BioportalParser extends Bio2RDFizer
 		echo "done!".PHP_EOL;
 	}
 
-	private function OWL2RDF($abbv)
+	private function OWL2RDF($abbv, $parser = "RDFXML") 
 	{
 		$filename = parent::getReadFile()->getFilename();
 		$buf = file_get_contents("compress.zlib://".$filename);
 
-		$parser = ARC2::getRDFXMLParser('file://'.$filename);
+		if($parser == "RDFXML") {
+			$parser = ARC2::getRDFXMLParser('file://'.$filename);
+		} else {
+			$parser = ARC2::getTurtleParser('file://'.$filename);
+		}
 		$parser->parse("http://bio2rdf.org/bioportal#", $buf);
 		$triples = $parser->getTriples();
 		foreach($triples AS $i => $a) {
@@ -565,7 +575,7 @@ class BioportalParser extends Bio2RDFizer
 								} else {
 									if($ns) {
 										// orphanet107{source="efo:1001251"}
-										$id = str_replace(array(" ",",","#","<",">"),array("%20","%2C","%23","%3C","%3E"),$id);
+										$id = str_replace(array(" ",",","#","<",">"),array("%20","%2C","%23","%3C","%3E"),trim($id));
 										$buf .= parent::triplify($tid,"obo_vocabulary:x-$ns", "$ns:".parent::safeLiteral($id));
 									}
 								}
@@ -625,7 +635,7 @@ class BioportalParser extends Bio2RDFizer
 					#$rel = str_replace(" ","_",$rel);
 					// $lit = addslashes($str.($b_text?" [".$b_text."]":""));
 					// synonym: "cerebral amyloid angiopathy, ITM2B-Related, type 2" EXACT [MONDORULE:1, OMIM:117300]
-					$l = parent::triplifyString($tid,"obo_vocabulary:".strtolower($rel), parent::safeLiteral($str));
+					$l = parent::triplifyString($tid,"obo_vocabulary:".strtolower($rel), parent::safeLiteral(trim($str)));
 					$buf .= $l;
 					
 				} else if($a[0] == "alt_id") {
