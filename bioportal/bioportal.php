@@ -169,6 +169,10 @@ class BioportalParser extends Bio2RDFizer
 				$ofile = strtolower($abbv).".".parent::getParameterValue('output_format');
 				parent::setWriteFile($odir.$ofile,$gz);
 
+				$version = parent::getParameterValue("bio2rdf_release");
+				$dataset_uri = strtolower($abbv)."_resource:bio2rdf.dataset.".strtolower($abbv).".R".$version;
+				parent::setGraphURI($dataset_uri);
+
 				// process
 				echo "converting ... ";
 				
@@ -241,7 +245,7 @@ class BioportalParser extends Bio2RDFizer
 	{
 		$filename = parent::getReadFile()->getFilename();
 		$buf = file_get_contents("compress.zlib://".$filename);
-
+		
 		if($parser == "RDFXML") {
 			$parser = ARC2::getRDFXMLParser('file://'.$filename);
 		} else {
