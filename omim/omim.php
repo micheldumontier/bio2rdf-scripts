@@ -73,13 +73,25 @@ class OMIMParser extends Bio2RDFizer
 			echo "downloading $file ... ";
 			Utils::DownloadSingle($rfile, $lfile);
 		}
+
+		$symbols = array(
+			"null" => "Phenotype",
+			"percent" => "PhenotypeWithNoMolecularBasis",
+			"caret" => "Deprecated",
+			"asterisk" => "Gene",
+			"number sign" => "PhenotypeWithNonUniqueLocus",
+			"plus" => "GeneWithKnownSequenceAndPhenotype"
+		);
 		// parse the file
 		$fp = fopen($lfile,"rb");
 		while($l = fgetcsv($fp,0,"\t")) {
 			if($l[0][0] == "#") continue;
-			$full_list[ $l[1] ] = "";
+			$symbol = strtolower($l[0]);
+			if(!isset($symbols[$symbol])) {
+				trigger_error("Unknown OMIM record type:".$symbol);
+			}
+			$full_list[ $l[1] ] = $symbols[$symbol];
 		}
-		
 
 		// get the work specified
 		$list = trim(parent::getParameterValue('files'));		
@@ -109,7 +121,7 @@ class OMIMParser extends Bio2RDFizer
 					$myentries[$e] = '';
 				}
 				$entries = array_intersect_key ($full_list,$myentries);
-			}		
+			}
 		} else $entries = $full_list;
 
 		echo "Will process a total of ".count($entries)." OMIM entries".PHP_EOL; 
@@ -294,10 +306,14 @@ class OMIMParser extends Bio2RDFizer
 
 		// parse titles
 		$titles = $o['titles'];
+		$ptype = parent::getVoc().$type;
+		
 		parent::addRDF(
-			parent::describeIndividual($omim_uri, $titles['preferredTitle'], parent::getVoc().str_replace(array(" ","/"),"-", ucfirst($type))).
-			parent::describeClass(parent::getVoc().str_replace(array(" ","/"),"-", ucfirst($type)),$type)
+			parent::describeIndividual($omim_uri, $titles['preferredTitle'], $ptype).
+			parent::describeClass($ptype,$type)
 		);
+
+
 		if(isset($titles['preferredTitle'])) {
 			parent::addRDF(parent::triplifyString($omim_uri, parent::getVoc()."preferred-title", $titles['preferredTitle']));
 		}
